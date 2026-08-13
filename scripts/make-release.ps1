@@ -32,15 +32,22 @@ if ($csproj -notmatch '<Version>\s*([0-9]+)\.([0-9]+)\.([0-9]+)\s*</Version>') {
 }
 
 $major = [int]$Matches[1]; $minor = [int]$Matches[2]; $patch = [int]$Matches[3]
-$version = "$major.$minor.$patch"
-$display = "v{0}.{1:d2}.{2:d2}" -f $major, $minor, $patch
 
-Write-Host "Claude Necromancer $display ($version)" -ForegroundColor Cyan
+# Three spellings of the same number, and they are not interchangeable:
+#   $version  1.0.0       what the csproj and the assembly carry
+#   $padded   1.00.00     the x.xx.xx form — used for tags and filenames
+#   $display  v1.00.00    what a person reads
+$version = "$major.$minor.$patch"
+$padded  = "{0}.{1:d2}.{2:d2}" -f $major, $minor, $patch
+$display = "v$padded"
+$tag     = "v$padded"
+
+Write-Host "Claude Necromancer $display (assembly $version)" -ForegroundColor Cyan
 
 $outDir = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-$assetName = "ClaudeNecromancer-$version-win-x64.exe"
+$assetName = "ClaudeNecromancer-$padded-win-x64.exe"
 $assetPath = Join-Path $outDir $assetName
 
 # ── Build ─────────────────────────────────────────────────────────────────
@@ -75,7 +82,7 @@ Write-Host "  sha256: $sha" -ForegroundColor DarkGray
 # ── Notes ─────────────────────────────────────────────────────────────────
 # The updater looks for a 64-character hex run on a line that also names the asset, so the table
 # row below is what makes the release installable. Do not reformat it away.
-$notesPath = Join-Path $outDir "ClaudeNecromancer-$version-notes.md"
+$notesPath = Join-Path $outDir "ClaudeNecromancer-$padded-notes.md"
 
 $body = @"
 # Claude Necromancer $display
@@ -102,5 +109,5 @@ Write-Host "  $([IO.Path]::GetFileName($notesPath))" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "Next:" -ForegroundColor Cyan
-Write-Host "  git tag v$version && git push origin v$version"
-Write-Host "  gh release create v$version `"$assetPath`" --title `"$display`" --notes-file `"$notesPath`""
+Write-Host "  git tag $tag && git push origin $tag"
+Write-Host "  gh release create $tag `"$assetPath`" --title `"$display`" --notes-file `"$notesPath`""
