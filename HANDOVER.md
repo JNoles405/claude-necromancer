@@ -152,6 +152,15 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
 
 ## 6. What changed and why
 
+### v1.01.00 — unattended update
+
+- `--update` (with `--check-only`) does the whole check → download → verify → swap without a
+  window, for Task Scheduler and for testing the update path without driving the GUI.
+- Release tags and asset filenames now use the padded `x.xx.xx` form, so what you download matches
+  what the title bar says. `v1.00.00` shipped as `ClaudeNecromancer-1.00.00-win-x64.exe`.
+
+A feature release rather than a patch: `--update` is new behaviour, not a fix.
+
 ### v1.00.00 — first release
 
 - Session scanning, zero-byte touching, scheduling, tray app, selective protection.
@@ -159,7 +168,7 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
 - Archiving outside `~/.claude`.
 - claude.ai chat backup (see §7 for why this is a backup and not a "touch").
 - Self-updater against GitHub releases with mandatory SHA-256 verification.
-- Headless `--list` / `--touch-now` / `--version`.
+- Headless `--list` / `--touch-now` / `--update` / `--version`.
 
 Fixed during first-round GUI verification, before release:
 
@@ -235,6 +244,11 @@ Three dead ends, in order, each of which looked like it worked:
 The working scripts are not in the repo (they are throwaway harness), but the technique above is
 what to rebuild if the GUI needs checking again.
 
+11. **`Start-Process -Wait` hangs on `--update`.** The relaunched build inherits the redirected
+    stdout handle, so PowerShell waits for that handle to close — i.e. for the *new* GUI to exit,
+    not for the updating process. The update itself completes normally; only the harness appears to
+    hang. Read the redirect file directly rather than waiting on the process.
+
 ---
 
 ## 8. How things are verified
@@ -274,20 +288,31 @@ whose checksum line matches the file byte for byte. That line —
 — is exactly the shape `Updater.FindSha256` parses: a 64-character hex run on a line that also
 names the asset. **If you reformat the notes template, re-check that parser.**
 
-**Not yet verified:** the update download/verify/swap path (needs a published release), and chat
-backup against a live account (needs the owner's `sessionKey`).
+### The self-update path, verified end to end
+
+Against the real published `v1.00.00` release, using a throwaway `0.9.0` build (csproj `<Version>`
+temporarily changed, published to a scratch folder, csproj restored):
+
+| Step | Result |
+| --- | --- |
+| Detect | `v0.09.00` saw `v1.00.00` as newer |
+| Parse hash from release notes | `4ba699e1…` read out of the markdown table row |
+| Download | 48.03 MB |
+| Verify | checksum matched |
+| Swap | scratch `.exe` SHA-256 became **exactly** the release's |
+| Old build | kept alongside as `ClaudeNecromancer.exe.bak` |
+| Restart | relaunched build reports `v1.00.00` |
+
+**Not yet verified:** chat backup against a live account (needs the owner's `sessionKey`).
 
 ---
 
 ## 9. Outstanding
 
-- **No release has been published yet.** `scripts/make-release.ps1` produces the asset and the
-  notes, but creating the GitHub release needs the owner's credentials and is deliberately manual.
-  Until a release exists, the updater's check correctly reports "up to date" (a 404 from the
-  releases API is treated as a normal empty state, not a fault).
-- **The self-update path has not been exercised end-to-end**, because that requires two published
-  releases. The download-and-verify half is implemented; the swap script has not been run against a
-  real update. **Test this before relying on it.**
+- **`v1.00.00` is published**: <https://github.com/JNoles405/claude-necromancer/releases/tag/v1.00.00>.
+  Creating a release still needs the owner's credentials and stays deliberately manual — the script
+  builds and hashes, a person publishes. Note that before any release exists the updater's check
+  correctly reports "up to date": a 404 from the releases API is a normal empty state, not a fault.
 - **Chat backup depends on undocumented endpoints** (`/api/organizations/...`). They can change
   without notice. It has not been run against a live account in this session — needs the owner's
   `sessionKey`.

@@ -6,7 +6,7 @@ Claude Code sweeps `~/.claude` at startup and deletes session files older than `
 — **30 days by default**. Claude Necromancer refreshes the timestamps on the sessions you care
 about so the sweep keeps passing them over, on whatever schedule you set.
 
-![version](https://img.shields.io/badge/version-v1.00.00-informational)
+![version](https://img.shields.io/badge/version-v1.01.00-informational)
 
 ## What it does
 
@@ -74,6 +74,13 @@ ClaudeNecromancer.exe --list
 
 ```bash
 ClaudeNecromancer.exe --touch-now
+```
+
+Unattended update — checks, downloads, verifies the published SHA-256 and swaps the executable.
+Add `--check-only` to report without installing.
+
+```bash
+ClaudeNecromancer.exe --update
 ```
 
 `--version` prints the version. `--minimized` starts straight to the tray.

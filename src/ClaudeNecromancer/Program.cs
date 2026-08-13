@@ -31,6 +31,12 @@ internal static class Program
             return;
         }
 
+        if (Has(args, "--update"))
+        {
+            RunHeadlessUpdate(install: !Has(args, "--check-only"));
+            return;
+        }
+
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeNecromancer.SingleInstance", out var isFirst);
         if (!isFirst)
         {
@@ -100,6 +106,62 @@ internal static class Program
         foreach (var error in outcome.Errors) WriteConsole("  " + error);
 
         Environment.ExitCode = outcome.AnyFailures ? 1 : 0;
+    }
+
+    /// <summary>
+    /// Unattended update. Checks, and unless --check-only is passed, downloads, verifies the
+    /// published SHA-256 and swaps the executable.
+    ///
+    /// The verification is not skippable here either: an unattended path is exactly where a bad
+    /// download would go unnoticed, so the same rule applies as in the UI — a hash that does not
+    /// match is deleted rather than run.
+    /// </summary>
+    private static void RunHeadlessUpdate(bool install)
+    {
+        var updater = new Updater();
+
+        WriteConsole($"Current: {VersionInfo.Display()}");
+        updater.CheckAsync().GetAwaiter().GetResult();
+
+        switch (updater.State)
+        {
+            case UpdateState.UpToDate:
+                WriteConsole("Up to date.");
+                return;
+
+            case UpdateState.Failed:
+                WriteConsole("FAILED: " + updater.Error);
+                Environment.ExitCode = 1;
+                return;
+
+            case UpdateState.UpdateAvailable:
+                var latest = updater.Latest!;
+                WriteConsole($"Available: {latest.Version} — {latest.AssetName} " +
+                             $"({latest.Bytes / 1024.0 / 1024.0:0.##} MB)");
+                WriteConsole($"Expected sha256: {latest.Sha256}");
+                break;
+        }
+
+        if (!install)
+        {
+            WriteConsole("Check only; not downloading.");
+            return;
+        }
+
+        WriteConsole("Downloading…");
+        updater.DownloadAsync().GetAwaiter().GetResult();
+
+        if (updater.State != UpdateState.ReadyToInstall)
+        {
+            WriteConsole("FAILED: " + (updater.Error ?? updater.State.ToString()));
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        WriteConsole("Checksum verified.");
+        WriteConsole(updater.InstallAndRestart()
+            ? "Installing; this process will exit and the new build will start."
+            : "FAILED: could not start the installer.");
     }
 
     /// <summary>
