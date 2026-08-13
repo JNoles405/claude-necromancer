@@ -263,6 +263,17 @@ protected session read 30.0.
 was exercised against the live GitHub API: with no releases published it receives a 404 and
 correctly reports "You are on the latest release", with Download and Install disabled.
 
+**Packaging:** `scripts/make-release.ps1` was run end to end. It produces a 48.03 MB self-contained
+single-file `ClaudeNecromancer-1.0.0-win-x64.exe`, which runs and reports `v1.00.00`, plus notes
+whose checksum line matches the file byte for byte. That line —
+
+```
+| ClaudeNecromancer-1.0.0-win-x64.exe | `6249a2bb…` |
+```
+
+— is exactly the shape `Updater.FindSha256` parses: a 64-character hex run on a line that also
+names the asset. **If you reformat the notes template, re-check that parser.**
+
 **Not yet verified:** the update download/verify/swap path (needs a published release), and chat
 backup against a live account (needs the owner's `sessionKey`).
 
