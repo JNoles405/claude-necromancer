@@ -58,13 +58,27 @@ public sealed class SessionInfo
     public string DisplayProject =>
         !string.IsNullOrWhiteSpace(Cwd) ? Cwd! : ClaudePaths.PrettifyProjectFolder(ProjectFolder);
 
+    /// <summary>
+    /// A short label for the list. Deliberately the last TWO path segments, not just the leaf:
+    /// several real projects here live at F:\CarKeep\App, F:\Lobbii\App, F:\Qoder\App and so on, so
+    /// the leaf alone renders four different projects as an identical, useless "App".
+    /// </summary>
     public string ShortProject
     {
         get
         {
-            var p = DisplayProject;
-            var i = p.LastIndexOfAny(new[] { '\\', '/' });
-            return i >= 0 && i < p.Length - 1 ? p[(i + 1)..] : p;
+            var path = DisplayProject.Replace('/', '\\').TrimEnd('\\');
+            var parts = path.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+
+            // Drop the drive ("F:"), which distinguishes nothing.
+            if (parts.Length > 1 && parts[0].EndsWith(':')) parts = parts[1..];
+
+            return parts.Length switch
+            {
+                0 => path,
+                1 => parts[0],
+                _ => parts[^2] + "\\" + parts[^1],
+            };
         }
     }
 }

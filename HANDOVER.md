@@ -161,6 +161,13 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
 - Self-updater against GitHub releases with mandatory SHA-256 verification.
 - Headless `--list` / `--touch-now` / `--version`.
 
+Fixed during first-round GUI verification, before release:
+
+- The window opened on the wrong tab (§7.9).
+- `ShortProject` rendered four different projects as an identical "App" (§7.8).
+- The all-clear message read "Nothing within 23 days of the sweep", which stated the wrong number
+  in the wrong direction. It now names the actual margin: "the closest has 30 days left".
+
 ---
 
 ## 7. Traps already paid for
@@ -194,6 +201,40 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
    a 30-day sweep looked like a bug in the docs; it was the documented "removed with the parent"
    behaviour. Checking the timestamps took seconds and settled it.
 
+8. **A project folder name is genuinely ambiguous, and the leaf of a path is not a label.**
+   `F--CarKeep-App` encodes *either* `F:\CarKeep App` *or* `F:\CarKeep\App` — the encoding replaces
+   both spaces and separators with dashes, so it cannot be inverted. On this machine the real paths
+   are the nested ones, which put four different projects (`CarKeep`, `Lobbii`, `Qoder`,
+   `NetRef-IT-Pro`) at a directory literally called `App`. `ShortProject` therefore shows the last
+   **two** segments. Prefer the `cwd` recorded inside the transcript over the folder name; it is the
+   only non-ambiguous source.
+
+9. **`TabControl.SelectedIndex` must be set explicitly.** Adding pages leaves the selection
+   wherever the last-added page put it, and the window opened on "Schedule & Settings".
+
+10. **Never leave the app focused while automating around it.** During GUI verification, stray
+    keystrokes reached the foreground window and silently ticked "Start with Windows" and "Start
+    minimised", which wrote a `HKCU\…\Run` entry and made the next launch appear to fail with no
+    window. Both were reverted. If the app suddenly starts hidden, check
+    `%APPDATA%\ClaudeNecromancer\config.json` for `StartMinimized` before debugging anything else.
+
+### Verifying the GUI without a person at the keyboard
+
+Three dead ends, in order, each of which looked like it worked:
+
+- **`CopyFromScreen` captures whatever is physically on top.** Windows refuses foreground steals
+  from a background process, so `SetForegroundWindow` silently fails and you screenshot an
+  unrelated window. Use **`PrintWindow` with flag 2** (`PW_RENDERFULLCONTENT`), which renders the
+  target window regardless of z-order or occlusion.
+- **`TCM_SETCURSEL` moves the tab highlight but not the page.** WinForms manages page visibility
+  itself, so the header changes and the content does not — which looks exactly like a layout bug.
+  Drive tab selection through **UI Automation's `SelectionItemPattern`** instead.
+- **WinForms mangles window class names** — the tab control is
+  `WindowsForms10.SysTabControl32.app.0.…`, so an exact match on `SysTabControl32` finds nothing.
+
+The working scripts are not in the repo (they are throwaway harness), but the technique above is
+what to rebuild if the GUI needs checking again.
+
 ---
 
 ## 8. How things are verified
@@ -215,7 +256,15 @@ Verified on 2026-08-13 against the real `~/.claude` on this machine, using
 The zero-byte claim is measured, not asserted. Coverage is exactly right: everything the sweep can
 delete was touched; everything it spares was left alone.
 
-Closest session to deletion at the time of writing was `Specd`, with 10.4 days left.
+Closest session to deletion before the run was `Specd`, with 10.4 days left; after it, every
+protected session read 30.0.
+
+**GUI:** all five tabs were rendered and inspected via `PrintWindow` (see §7). The updater's check
+was exercised against the live GitHub API: with no releases published it receives a 404 and
+correctly reports "You are on the latest release", with Download and Install disabled.
+
+**Not yet verified:** the update download/verify/swap path (needs a published release), and chat
+backup against a live account (needs the owner's `sessionKey`).
 
 ---
 

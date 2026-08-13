@@ -103,6 +103,10 @@ public sealed class MainForm : Form
         tabs.TabPages.Add(BuildUpdatesTab());
         tabs.TabPages.Add(BuildActivityTab());
 
+        // Adding pages leaves the selection wherever the last-added page put it, so say it outright:
+        // the window must open on Sessions, which is what the app is for.
+        tabs.SelectedIndex = 0;
+
         Controls.Add(tabs);
         Controls.Add(header);
     }
@@ -636,10 +640,6 @@ public sealed class MainForm : Form
             _list.Items.Add(item);
         }
 
-        // In "protect everything" mode the ticks are informational, so freeze them.
-        _list.Enabled = !protectAll || true;
-        foreach (ListViewItem item in _list.Items) item.Checked = protectAll || item.Checked;
-
         _list.EndUpdate();
         _loading = false;
 
@@ -661,10 +661,19 @@ public sealed class MainForm : Form
         _summary.Text = $"{total} session{(total == 1 ? "" : "s")} · {targets} protected · " +
                         $"{FormatSize(bytes)} on disk · next run: {next}";
 
-        _warning.Text = atRisk.Count == 0
-            ? $"Nothing within {_controller.CleanupPeriodDays - 7} days of the sweep."
-            : $"⚠  {atRisk.Count} protected session{(atRisk.Count == 1 ? " is" : "s are")} within a week of " +
-              $"deletion. The oldest is \"{Trim(atRisk[0].ShortProject, 40)}\".";
+        var soonest = _controller.Targets()
+            .Select(s => s.DaysLeft(_controller.CleanupPeriodDays))
+            .DefaultIfEmpty(double.PositiveInfinity)
+            .Min();
+
+        _warning.Text = atRisk.Count switch
+        {
+            0 when double.IsInfinity(soonest) => "No sessions are being protected.",
+            0 => $"Nothing due for deletion in the next 7 days — the closest has {soonest:0.#} days left.",
+            _ => $"⚠  {atRisk.Count} protected session{(atRisk.Count == 1 ? " is" : "s are")} within a week of " +
+                 $"deletion. The closest is \"{Trim(atRisk[0].ShortProject, 40)}\" with " +
+                 $"{(atRisk[0].DaysLeft(_controller.CleanupPeriodDays) <= 0 ? "none" : $"{soonest:0.#} days")} left.",
+        };
 
         _warning.ForeColor = atRisk.Count == 0 ? SystemColors.GrayText : RiskCritical;
     }
