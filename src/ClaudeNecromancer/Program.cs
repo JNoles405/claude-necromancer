@@ -99,7 +99,7 @@ internal static class Program
         using var controller = new AppController();
         var targets = controller.Targets();
 
-        WriteConsole($"Touching {targets.Count} session(s)…");
+        WriteConsole($"Touching {targets.Count} session(s)...");
         var outcome = controller.RunTouch(manual: true);
 
         WriteConsole($"Touched {outcome.Touched}, archived {outcome.Archived}, failed {outcome.Failed}.");
@@ -136,7 +136,7 @@ internal static class Program
 
             case UpdateState.UpdateAvailable:
                 var latest = updater.Latest!;
-                WriteConsole($"Available: {latest.Version} — {latest.AssetName} " +
+                WriteConsole($"Available: {latest.Version} - {latest.AssetName} " +
                              $"({latest.Bytes / 1024.0 / 1024.0:0.##} MB)");
                 WriteConsole($"Expected sha256: {latest.Sha256}");
                 break;
@@ -148,7 +148,7 @@ internal static class Program
             return;
         }
 
-        WriteConsole("Downloading…");
+        WriteConsole("Downloading...");
         updater.DownloadAsync().GetAwaiter().GetResult();
 
         if (updater.State != UpdateState.ReadyToInstall)
@@ -173,6 +173,11 @@ internal static class Program
         if (!_consoleAttached)
         {
             AttachConsole(AttachParentProcess);
+
+            // Without this the console falls back to the OEM code page and any non-ASCII character
+            // arrives as a replacement glyph — em dashes and ellipses came through as "?".
+            try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { }
+
             _consoleAttached = true;
         }
         Console.WriteLine(line);

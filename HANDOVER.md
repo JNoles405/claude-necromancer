@@ -313,6 +313,10 @@ temporarily changed, published to a scratch folder, csproj restored):
   Creating a release still needs the owner's credentials and stays deliberately manual — the script
   builds and hashes, a person publishes. Note that before any release exists the updater's check
   correctly reports "up to date": a 404 from the releases API is a normal empty state, not a fault.
+- **`main` is one commit ahead of `v1.01.00`**: headless output forced the console to UTF-8 and
+  dropped its non-ASCII characters, because em dashes and ellipses arrived as `?` under the OEM
+  code page. Cosmetic and confined to console output, so it was not worth a third release in one
+  sitting — it ships with whatever comes next.
 - **Chat backup depends on undocumented endpoints** (`/api/organizations/...`). They can change
   without notice. It has not been run against a live account in this session — needs the owner's
   `sessionKey`.
