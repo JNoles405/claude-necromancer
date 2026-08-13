@@ -6,7 +6,7 @@ Claude Code sweeps `~/.claude` at startup and deletes session files older than `
 — **30 days by default**. Claude Necromancer refreshes the timestamps on the sessions you care
 about so the sweep keeps passing them over, on whatever schedule you set.
 
-![version](https://img.shields.io/badge/version-v1.01.00-informational)
+![version](https://img.shields.io/badge/version-v1.01.01-informational)
 
 ## What it does
 

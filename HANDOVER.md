@@ -152,6 +152,13 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
 
 ## 6. What changed and why
 
+### v1.01.01 — headless output encoding
+
+- Headless output forces UTF-8 on the attached console, and the strings themselves are plain ASCII
+  so they survive a console that cannot do better. Em dashes and ellipses were arriving as `?`.
+
+A patch, not a feature: no behaviour changed, only how it prints.
+
 ### v1.01.00 — unattended update
 
 - `--update` (with `--check-only`) does the whole check → download → verify → swap without a
@@ -313,10 +320,6 @@ temporarily changed, published to a scratch folder, csproj restored):
   Creating a release still needs the owner's credentials and stays deliberately manual — the script
   builds and hashes, a person publishes. Note that before any release exists the updater's check
   correctly reports "up to date": a 404 from the releases API is a normal empty state, not a fault.
-- **`main` is one commit ahead of `v1.01.00`**: headless output forced the console to UTF-8 and
-  dropped its non-ASCII characters, because em dashes and ellipses arrived as `?` under the OEM
-  code page. Cosmetic and confined to console output, so it was not worth a third release in one
-  sitting — it ships with whatever comes next.
 - **Chat backup depends on undocumented endpoints** (`/api/organizations/...`). They can change
   without notice. It has not been run against a live account in this session — needs the owner's
   `sessionKey`.

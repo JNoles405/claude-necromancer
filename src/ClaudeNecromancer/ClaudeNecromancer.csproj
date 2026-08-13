@@ -10,7 +10,7 @@
     <RootNamespace>ClaudeNecromancer</RootNamespace>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationDefaultFont>Segoe UI, 9pt</ApplicationDefaultFont>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Product>Claude Necromancer</Product>
     <Description>Keeps Claude Code session transcripts alive past the cleanupPeriodDays sweep.</Description>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
