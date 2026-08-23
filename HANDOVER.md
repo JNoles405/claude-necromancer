@@ -295,6 +295,27 @@ whose checksum line matches the file byte for byte. That line —
 — is exactly the shape `Updater.FindSha256` parses: a 64-character hex run on a line that also
 names the asset. **If you reformat the notes template, re-check that parser.**
 
+### The premise itself, proven by experiment
+
+Everything here rests on one claim: that the retention sweep judges a file by its **modified time**.
+Until now that was inferred from Anthropic's docs, which say only "older than this period". It has
+now been tested directly.
+
+Method — completely isolated, no risk to real data, no credentials copied:
+
+1. A sandbox `.claude` under `CLAUDE_CONFIG_DIR`, with `settings.json` = `{"cleanupPeriodDays": 30}`.
+2. Two transcripts in it of **byte-identical content** (294 bytes each). One `touch -d "60 days ago"`,
+   the other touched to now.
+3. `claude -p` run against that sandbox with a **dummy `ANTHROPIC_API_KEY`**. The sweep runs at
+   startup, *before* the API call fails — so the real sweep executes and nothing is spent. Note that
+   `claude --version` does NOT trigger it; a session has to start.
+
+Result: `.last-cleanup` was written, the 60-day-old file was **deleted**, and the touched file
+**survived intact**. Same content, same directory, same sweep — mtime was the only variable.
+
+This is the single most important verification in the project. If the sweep's behaviour ever
+changes, re-run this experiment rather than reasoning about it.
+
 ### The self-update path, verified end to end
 
 Against the real published `v1.00.00` release, using a throwaway `0.9.0` build (csproj `<Version>`

@@ -85,6 +85,51 @@ ClaudeNecromancer.exe --update
 
 `--version` prints the version. `--minimized` starts straight to the tray.
 
+## How do I know it's working?
+
+Three checks, in increasing order of independence from this app.
+
+**1. Ask the app.** The Sessions tab shows "Last touched" and "Days left" per session, and the
+Activity tab logs every run. From a terminal:
+
+```
+ClaudeNecromancer.exe --list
+```
+
+**2. Check the filesystem yourself**, trusting nothing this app says. Any session whose modified
+time is recent is one the sweep will pass over:
+
+```
+Get-ChildItem "$env:USERPROFILE\.claude\projects" -Recurse -Filter *.jsonl |
+  Sort-Object LastWriteTime |
+  Select-Object -First 10 LastWriteTime, @{n='MB';e={[math]::Round($_.Length/1MB,2)}}, Name
+```
+
+**3. Check the retention window**, which is the protection that does not depend on this app running
+at all:
+
+```
+type %USERPROFILE%\.claude\settings.json
+```
+
+### The proof that touching works
+
+The claim underneath all of this — that the sweep judges files by modified time — was verified by
+experiment, not by reading the documentation:
+
+An isolated `CLAUDE_CONFIG_DIR` sandbox was created with `cleanupPeriodDays: 30` and two session
+transcripts of **byte-identical content** (294 bytes each). One was aged 60 days; the other was
+touched to the current time. Claude Code was then started against that sandbox to run its real
+startup sweep.
+
+| File | mtime | Outcome |
+| ---- | ----- | ------- |
+| `aaaaaaaa-….jsonl` | 60 days old | **deleted** |
+| `bbbbbbbb-….jsonl` | touched to now | **survived, intact** |
+
+Same content, same directory, same sweep. The only variable was the modified time, and it decided
+which file lived. That is exactly the lever this app pulls.
+
 ## Safety
 
 A touch changes timestamps and nothing else. It never appends to a transcript: these are JSONL
