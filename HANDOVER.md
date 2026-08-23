@@ -341,6 +341,35 @@ Result: `.last-cleanup` was written, the 60-day-old file was **deleted**, and th
 This is the single most important verification in the project. If the sweep's behaviour ever
 changes, re-run this experiment rather than reasoning about it.
 
+### Archiving, verified — and why the archive must live on another disk
+
+The archive ran for the first time on 2026-08-23 and was checked by hash, not by trusting the
+"27 archived" count:
+
+| Result | Count |
+| --- | --- |
+| Byte-identical to source | 24 |
+| Valid older snapshot of a still-live session | 3 |
+| Missing | 0 |
+| Corrupt | 0 |
+
+The three non-identical files are **exact byte-prefixes** of their sources with zero invalid JSON
+lines — sessions that were being appended to while the copy ran. That is expected and self-healing:
+`Archiver` compares by size, so a grown file is re-copied next run.
+
+**Put the archive on a different physical disk from `~/.claude`.** It defaulted to
+`Documents\ClaudeNecromancer\Archive`, which on this machine put the archive on the *same* SSD
+(Disk 3) as the source — two copies, one device, no protection against losing that disk. It is now
+`D:\ClaudeNecromancer\Archive` (Disk 0, HDD), so source and archive share no hardware and no media
+type. Check with:
+
+```powershell
+(Get-Partition -DriveLetter C).DiskNumber; (Get-Partition -DriveLetter D).DiskNumber
+```
+
+Worth considering: the default archive location should probably not be under the user profile at
+all, since that is the disk most likely to hold the source.
+
 ### The self-update path, verified end to end
 
 Against the real published `v1.00.00` release, using a throwaway `0.9.0` build (csproj `<Version>`
