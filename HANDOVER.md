@@ -251,6 +251,31 @@ Three dead ends, in order, each of which looked like it worked:
 The working scripts are not in the repo (they are throwaway harness), but the technique above is
 what to rebuild if the GUI needs checking again.
 
+12. **A stale second instance silently overwrites config, and hides under a different process
+    name.** The packaged asset runs as `ClaudeNecromancer-1.01.01-win-x64.exe`, so
+    `Get-Process ClaudeNecromancer` does **not** match it. Two separate orphans survived every
+    cleanup that way and held the single-instance mutex for hours.
+
+    Two consequences, both of which cost real time here:
+
+    - **Launches look like crashes.** A second copy hits the mutex guard, shows the "already
+      running" dialog and returns *before* `Log.Info("Claude Necromancer starting.")` — so the
+      process exists (it is sitting on a MessageBox) but the activity log records nothing. That
+      reads exactly like broken logging. It is not: start one clean instance and the line appears.
+    - **Settings appear to revert on their own.** Each instance holds `AppConfig` in memory and
+      writes the whole file on save, so an old copy started before a change will happily write its
+      stale values back over the new ones. Interval, start-minimised and run-at-login all
+      "reverted" this way and were wrongly blamed on the user.
+
+    When anything about config or logging looks haunted, first run:
+
+    ```powershell
+    Get-Process | Where-Object { $_.ProcessName -match 'Necro' }
+    ```
+
+    Match on `Necro`, never on the full name. `dist/` is now deleted after packaging so there is no
+    stray copy to launch by accident.
+
 11. **`Start-Process -Wait` hangs on `--update`.** The relaunched build inherits the redirected
     stdout handle, so PowerShell waits for that handle to close — i.e. for the *new* GUI to exit,
     not for the updating process. The update itself completes normally; only the harness appears to
