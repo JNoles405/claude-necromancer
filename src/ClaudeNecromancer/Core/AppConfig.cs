@@ -41,7 +41,25 @@ public sealed class AppConfig
     /// <summary>claude.ai session cookie, DPAPI-encrypted for the current Windows user.</summary>
     public string? ProtectedSessionKey { get; set; }
 
-    public bool RunAtLogin { get; set; }
+    /// <summary>
+    /// Start with Windows. Defaults to ON: this is a tray utility whose whole job happens on a
+    /// schedule, and a scheduler that only runs when you remember to launch it is not a scheduler.
+    ///
+    /// The default is only *applied* on a genuine first run — see <see cref="IsFirstRun"/> and
+    /// AppController.ApplyFirstRunDefaults. Turning it off later must stick.
+    /// </summary>
+    public bool RunAtLogin { get; set; } = true;
+
+    /// <summary>
+    /// True when no config file existed and these are the shipped defaults.
+    ///
+    /// Not serialised: it describes this launch, not the saved state. A config that exists but
+    /// cannot be parsed deliberately does NOT count, so a corrupt file never silently re-applies
+    /// side effects the user may have turned off.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsFirstRun { get; private set; }
+
     public bool StartMinimized { get; set; }
     public bool ShowNotifications { get; set; } = true;
 
@@ -86,7 +104,7 @@ public sealed class AppConfig
         {
             Log.Warn($"Config unreadable, falling back to defaults: {ex.Message}");
         }
-        return new AppConfig();
+        return new AppConfig { IsFirstRun = !File.Exists(ClaudePaths.ConfigPath) };
     }
 
     public void Save()

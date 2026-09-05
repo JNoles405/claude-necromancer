@@ -6,7 +6,7 @@ Claude Code sweeps `~/.claude` at startup and deletes session files older than `
 — **30 days by default**. Claude Necromancer refreshes the timestamps on the sessions you care
 about so the sweep keeps passing them over, on whatever schedule you set.
 
-![version](https://img.shields.io/badge/version-v1.01.01-informational)
+![version](https://img.shields.io/badge/version-v1.02.00-informational)
 
 ## What it does
 
@@ -19,6 +19,7 @@ about so the sweep keeps passing them over, on whatever schedule you set.
 - **Archives copies** outside `~/.claude`, where the sweep never looks.
 - **Backs up claude.ai conversations** to local JSON and Markdown.
 - **Updates itself** from GitHub releases, verifying a published SHA-256 before installing.
+- **Starts with Windows** by default, so the schedule actually runs. One checkbox to turn off.
 
 ## Why touching works
 
@@ -84,6 +85,20 @@ ClaudeNecromancer.exe --update
 ```
 
 `--version` prints the version. `--minimized` starts straight to the tray.
+
+Set `CLAUDE_NECROMANCER_HOME` to keep config, logs and backups somewhere other than
+`%APPDATA%\ClaudeNecromancer` — useful for a portable install, or for trying settings without
+disturbing your real ones.
+
+## Starting with Windows
+
+**On by default.** This is a tray utility whose entire job happens on a schedule, and a scheduler
+that only runs when you remember to launch it is not a scheduler. On its first run the app adds
+itself to `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` — per-user, so it needs no
+administrator rights — and logs that it did.
+
+Turn it off any time with **Schedule & Settings → Start with Windows**. That sticks: the default is
+applied once, on the first run only, and is never re-applied afterwards.
 
 ## How do I know it's working?
 

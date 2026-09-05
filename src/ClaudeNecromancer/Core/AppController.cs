@@ -31,6 +31,31 @@ public sealed class AppController : IDisposable
 
     public DateTime? NextDueUtc => _scheduler.NextDueUtc;
 
+    /// <summary>
+    /// Turns the shipped defaults into actual system state, exactly once.
+    ///
+    /// RunAtLogin defaults to true, but "does it start with Windows" is answered by the registry,
+    /// not by this config — the checkbox reads <see cref="StartupRegistration.IsRegistered"/>. So
+    /// without this the UI would claim the app starts with Windows while nothing had been
+    /// registered: a default that lies is worse than one that is off.
+    ///
+    /// Guarded by IsFirstRun so that turning it off later is never undone on the next launch.
+    /// Called only from the tray app: a headless --touch-now from Task Scheduler has no business
+    /// adding autostart entries.
+    /// </summary>
+    public void ApplyFirstRunDefaults()
+    {
+        if (!Config.IsFirstRun) return;
+
+        Log.Info("First run: applying default settings.");
+
+        if (Config.RunAtLogin && !StartupRegistration.IsRegistered())
+            StartupRegistration.Set(true);
+
+        Config.RunAtLogin = StartupRegistration.IsRegistered();
+        Config.Save();
+    }
+
     public void Refresh()
     {
         CleanupPeriodDays = SettingsPatcher.GetEffectiveCleanupPeriodDays(

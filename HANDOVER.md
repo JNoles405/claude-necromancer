@@ -152,6 +152,17 @@ mode, and a **paused sweep** when Claude Code cannot determine the retention per
 
 ## 6. What changed and why
 
+### v1.02.00 — starts with Windows by default
+
+- `RunAtLogin` now defaults to **true**, and is *applied* on first run rather than merely displayed.
+  The checkbox reads the registry, not the config, so a config default alone would have shown a
+  ticked box with nothing registered behind it — a default that lies is worse than one that is off.
+  `AppConfig.IsFirstRun` (set only when no config file existed, never when one is merely corrupt)
+  gates `AppController.ApplyFirstRunDefaults`, so turning it off later sticks.
+- Called from `TrayApp` only. A headless `--touch-now` from Task Scheduler has no business adding
+  autostart entries.
+- `CLAUDE_NECROMANCER_HOME` overrides the config/log directory. See §7 for why this had to exist.
+
 ### v1.01.01 — headless output encoding
 
 - Headless output forces UTF-8 on the attached console, and the strings themselves are plain ASCII
@@ -233,6 +244,22 @@ Fixed during first-round GUI verification, before release:
     minimised", which wrote a `HKCU\…\Run` entry and made the next launch appear to fail with no
     window. Both were reverted. If the app suddenly starts hidden, check
     `%APPDATA%\ClaudeNecromancer\config.json` for `StartMinimized` before debugging anything else.
+
+13. **Never test first-run behaviour against the live config directory.** Doing so destroyed the
+    user's real config twice in one session. The second time was worse: a test script hit an
+    unrelated error (`Get-Process | Stop-Process` with an empty pipeline is a *terminating*
+    parameter-binding error, even under `$ErrorActionPreference = "Continue"`), jumped to its
+    `finally`, and that cleanup deleted the live directory it had not yet renamed aside. Lost the
+    activity-log history and the `settings.backup.*.json` the app had taken.
+
+    Two rules follow:
+
+    - Use **`CLAUDE_NECROMANCER_HOME`** to point the app at a throwaway directory. Note that
+      redirecting `%APPDATA%` does **not** work — .NET resolves `SpecialFolder.ApplicationData`
+      through the shell API and ignores the variable, so the app silently keeps using the real one
+      and the "test" quietly runs against live state.
+    - A cleanup block must only undo what it has confirmed it did. Guard restores on a flag set
+      *after* the corresponding change succeeded, never on `Test-Path` of the live target.
 
 ### Verifying the GUI without a person at the keyboard
 

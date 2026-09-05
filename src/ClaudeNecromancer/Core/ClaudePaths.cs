@@ -29,9 +29,22 @@ public static class ClaudePaths
     /// </summary>
     public static string FileHistoryDir => Path.Combine(ClaudeDir, "file-history");
 
-    /// <summary>Our own state, kept well away from ~/.claude so the sweep can never reach it.</summary>
-    public static string AppDataDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClaudeNecromancer");
+    /// <summary>
+    /// Our own state, kept well away from ~/.claude so the sweep can never reach it.
+    ///
+    /// Overridable with CLAUDE_NECROMANCER_HOME, mirroring Claude Code's own CLAUDE_CONFIG_DIR.
+    /// That exists so behaviour which only happens on a fresh install — first-run defaults
+    /// especially — can be exercised against a throwaway directory. Testing that against the live
+    /// config destroyed it once; there is now no reason to do so again.
+    ///
+    /// Note that redirecting %APPDATA% does NOT work: .NET resolves SpecialFolder.ApplicationData
+    /// through the shell API and ignores the environment variable.
+    /// </summary>
+    public static string AppDataDir =>
+        Environment.GetEnvironmentVariable("CLAUDE_NECROMANCER_HOME") is { Length: > 0 } custom
+            ? custom
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClaudeNecromancer");
 
     public static string ConfigPath => Path.Combine(AppDataDir, "config.json");
     public static string LogPath => Path.Combine(AppDataDir, "necromancer.log");

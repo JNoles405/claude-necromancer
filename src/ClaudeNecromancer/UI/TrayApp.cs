@@ -32,6 +32,8 @@ public sealed class TrayApp : ApplicationContext
         };
         _tray.DoubleClick += (_, _) => ShowWindow();
 
+        _controller.ApplyFirstRunDefaults();
+
         _controller.SessionsChanged += OnSessionsChanged;
         _controller.RunCompleted += OnRunCompleted;
 
